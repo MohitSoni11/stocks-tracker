@@ -72,10 +72,49 @@ const TickerSchema = mongoose.Schema({
   }
 });
 
+const LotSchema = mongoose.Schema({
+  buyDate: {
+    type: Date,
+    default: Date.now,
+    required: true
+  },
+  account: {
+    type: String,
+    required: true
+  },
+  ticker: {
+    type: String,
+    required: true
+  },
+  transactionType: {
+    type: String,
+    required: true
+  },
+  buyQuantity: {
+    type: Number,
+    required: true
+  },
+  buyPrice: {
+    type: Number,
+    required: true
+  },
+  sellQuantity: {
+    type: Number,
+    default: 0,
+    required: true
+  },
+  sellReturn: {
+    type: Number,
+    default: 0,
+    required: true
+  }
+});
+
 const Type = mongoose.model('type', TypeSchema);
 const Account = mongoose.model('account', AccountSchema);
 const TransactionType = mongoose.model('transactionType', TransactionTypeSchema);
 const Ticker = mongoose.model('ticker', TickerSchema);
+const Lot = mongoose.model('lot', LotSchema);
 
 //////////////////////////////////////
 /********* Helper Functions *********/
@@ -211,4 +250,23 @@ app.get('/api/stocks', async (req, res) => {
   res.json({
     company: result['result']
   });
+});
+
+app.post('/buy', async (req, res) => {
+  data = {
+    buyDate: req.body.date,
+    account: req.body.account,
+    ticker: req.body.buyTicker,
+    transactionType: req.body.transactionType,
+    buyQuantity: req.body.quantity,
+    buyPrice: req.body.price
+  };
+
+  await Lot.insertMany([data]).then(() => {
+    console.log('Bought ' + data.buyQuantity + ' stocks of ' + data.ticker + ' at price ' + data.buyPrice);
+  }).catch((error) => {
+    console.log('ERROR: ' + error);
+  });
+
+  res.redirect('/');
 });

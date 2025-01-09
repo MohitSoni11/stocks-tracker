@@ -71,7 +71,6 @@
     </select><br>
 
     <span>Account Type: <span id="type-display">None</span></span><br>
-    
 
     <datalist id="tickers-list">
       <% tickers.forEach((ticker)=> { %>
@@ -87,7 +86,7 @@
     <span>Company: <span id="company-display">N/A</span></span><br>
     
     <label for="transaction-type">Transaction Type:</label>
-    <select name="account">
+    <select name="transactionType">
       <% transactionTypes.forEach((type)=> { %>
         <option value="<%= type.name %>">
           <%= type.name %>
