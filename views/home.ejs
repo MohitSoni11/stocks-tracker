@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+</head>
+
+<body>
+  <form action="/add-account-type" method="POST">
+    <h2>Add Account Type</h2>
+
+    <label for="name">Type Name:</label>
+    <input type="text" name="name"><br>
+
+    <input type="submit">
+  </form>
+
+  <form action="/add-account" method="POST">
+    <h2>Add Account</h2>
+
+    <label for="type">Type:</label>
+    <select name="type">
+      <% types.forEach((type)=> { %>
+        <option value="<%= type.name %>">
+          <%= type.name %>
+        </option>
+      <% }); %>
+    </select><br>
+
+    <label for="name">Name:</label>
+    <input type="text" name="name"><br>
+
+    <input type="submit">
+  </form>
+
+  <form action="/add-transaction-type" method="POST">
+    <h2>Add Transaction Type</h2>
+
+    <label for="name">Type Name:</label>
+    <input type="text" name="name"><br>
+
+    <input type="submit">
+  </form>
+
+  <form action="/add-ticker" method="POST">
+    <h2>Add Ticker</h2>
+
+    <label for="ticker">Ticker:</label>
+    <input type="text" name="ticker"><br>
+
+    <input type="submit">
+  </form>
+
+  <form action="/buy" method="POST">
+    <h2>Buy Stocks</h2>
+
+    <label for="date">Date:</label>
+    <input type="date" name="date" id="buy-date"><br>
+
+    <label for="account">Account:</label>
+    <select name="account" id="buy-account">
+      <option value="blank"></option>
+
+      <% accounts.forEach((account)=> { %>
+        <option value="<%= account.name %>">
+          <%= account.name %>
+        </option>
+      <% }); %>
+    </select><br>
+
+    <span>Account Type: <span id="type-display">None</span></span><br>
+    
+
+    <datalist id="tickers-list">
+      <% tickers.forEach((ticker)=> { %>
+        <option value="<%= ticker.ticker %>">
+          <%= ticker.ticker %>
+        </option>
+      <% }); %>
+    </datalist>
+
+    <label for="ticker">Ticker:</label>
+    <input type="text" list="tickers-list" name="buyTicker"><br>
+
+    <span>Company: <span id="company-display">N/A</span></span><br>
+    
+    <label for="transaction-type">Transaction Type:</label>
+    <select name="account">
+      <% transactionTypes.forEach((type)=> { %>
+        <option value="<%= type.name %>">
+          <%= type.name %>
+        </option>
+      <% }); %>
+    </select><br>
+
+    <label for="quantity">Purchase Quantity (Up to 4 decimal places):</label>
+    <input type="number" name="quantity" step="0.0001"><br>
+
+    <label for="price">Purchase Price in USD (Up to 3 decimal places):</label>
+    <input type="number" name="price" step="0.001"><br>
+
+    <input type="submit">
+  </form>
+
+  <form action="">
+    <!-- 
+    Ticker: Filtering + showing dropdown (from what I've bought)
+    Lot #: checkbox or number
+    Sell Quantity: Decimal up to 4
+    Sell Price: Get default from yfinance or let person do it
+    Commission/Fee: Up to 3 decimal places (deducted from gain)
+
+    Table below:
+    - 
+    -->
+  </form>
+
+  <script type="text/javascript">
+    const accounts = <%- JSON.stringify(accounts) %>
+    document.getElementById('buy-account').addEventListener('change', function () {
+      const selectedAccountName = this.value;
+
+      const account = accounts.find(acc => acc.name === selectedAccountName);
+      const typeDisplayElement = document.getElementById('type-display');
+
+      typeDisplayElement.textContent = account.type;
+    });
+
+    async function fetchTickerInfo(ticker) {
+      if (ticker == '') {
+        document.getElementById("company-display").textContent = 'N/A';
+        return;
+      }
+      
+      const response = await fetch(`/api/stocks?ticker=${ticker}`);
+      const data = await response.json();
+      document.getElementById("company-display").textContent = data.company;
+    }
+
+    document.querySelector('input[name="buyTicker"]').addEventListener("input", (event) => {
+      const ticker = event.target.value.toUpperCase();
+      fetchTickerInfo(ticker);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const localDate = today.getFullYear() +
+        '-' +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(today.getDate()).padStart(2, '0');
+
+      document.getElementById('buy-date').value = localDate;
+    });
+  </script>
+</body>
+
+</html>
