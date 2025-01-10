@@ -110,11 +110,35 @@ const LotSchema = mongoose.Schema({
   }
 });
 
+const sellSchema = mongoose.Schema({
+  ticker: {
+    type: String,
+    required: true
+  },
+  lot: {
+    type: String,
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  fee: {
+    type: Number,
+    required: true
+  }
+});
+
 const Type = mongoose.model('type', TypeSchema);
 const Account = mongoose.model('account', AccountSchema);
 const TransactionType = mongoose.model('transactionType', TransactionTypeSchema);
 const Ticker = mongoose.model('ticker', TickerSchema);
 const Lot = mongoose.model('lot', LotSchema);
+const Sell = mongoose.model('sell', sellSchema);
 
 //////////////////////////////////////
 /********* Helper Functions *********/
@@ -244,12 +268,28 @@ app.post('/add-ticker', async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/api/stocks', async (req, res) => {
+app.get('/fetch/company', async (req, res) => {
   const ticker = req.query.ticker?.toUpperCase();
   const result = await callPythonFunction('tickerToCompany', { ticker: ticker });
   res.json({
     company: result['result']
   });
+});
+
+app.get('/fetch/lots', async (req, res) => {
+  const ticker = req.query.ticker?.toUpperCase();
+  const results = await Lot.aggregate([
+    {
+      $match: {
+        ticker: ticker,
+        $expr: { $ne: ['$buyQuantity', '$sellQuantity'] } // Compare buyQuantity and sellQuantity
+      }
+    }
+  ]);
+    
+  res.json({
+    lots: results
+  })
 });
 
 app.post('/buy', async (req, res) => {
@@ -266,6 +306,36 @@ app.post('/buy', async (req, res) => {
     console.log('Bought ' + data.buyQuantity + ' stocks of ' + data.ticker + ' at price ' + data.buyPrice);
   }).catch((error) => {
     console.log('ERROR: ' + error);
+  });
+
+  res.redirect('/');
+});
+
+app.post('/sell', async (req, res) => {
+  data = {
+    ticker: req.body.sellTicker,
+    lot: req.body.lot,
+    quantity: req.body.quantity,
+    price: req.body.price,
+    fee: req.body.fee
+  };
+
+  const currLot = await Lot.findOne({ _id: data.lot });
+  
+  if (currLot.buyQuantity < currLot.sellQuantity + data.quantity) {
+    console.log('Error: Cannot sell more than bought.');
+    res.redirect('/');
+    return;
+  }
+
+  currLot.sellQuantity += data.quantity;
+  currLot.sellReturn += data.quantity * data.price - data.fee;
+  await currLot.save();
+
+  await Sell.insertMany([data]).then(() => {
+    console.log('Sold ' + data.quantity + ' stocks of ' + data.ticker + ' at price ' + data.buyPrice);
+  }).catch((error) => {
+    console.log('Error: ' + error);
   });
 
   res.redirect('/');

@@ -80,7 +80,7 @@
       <% }); %>
     </datalist>
 
-    <label for="ticker">Ticker:</label>
+    <label for="buyTicker">Ticker:</label>
     <input type="text" list="tickers-list" name="buyTicker"><br>
 
     <span>Company: <span id="company-display">N/A</span></span><br>
@@ -103,20 +103,48 @@
     <input type="submit">
   </form>
 
-  <form action="">
+  <form action="/sell" method="POST">
+    <h2>Sell Stocks</h2>
+
     <!-- 
     Ticker: Filtering + showing dropdown (from what I've bought)
     Lot #: checkbox or number
     Sell Quantity: Decimal up to 4
     Sell Price: Get default from yfinance or let person do it
     Commission/Fee: Up to 3 decimal places (deducted from gain)
-
-    Table below:
-    - 
     -->
+
+    <label for="sellTicker">Ticker:</label>
+    <select name="sellTicker">
+      <% tickers.forEach((ticker)=> { %>
+        <option value="<%= ticker.ticker %>">
+          <%= ticker.ticker %>
+        </option>
+      <% }); %>
+    </select><br>
+
+    <label for="lot">Lot:</label>
+    <select name="lot">
+    </select><br>
+
+    <pre id="lot-display"></pre>
+    
+    <label for="quantity">Sell Quantity (Up to 4 decimal places):</label>
+    <input type="number" name="quantity" step="0.0001"><br>
+
+    <label for="price">Sell Price in USD (Up to 3 decimal places):</label>
+    <input type="number" name="price" step="0.001"><br>
+
+    <label for="fee">Commission/Fee in USD (Up to 3 decimal places):</label>
+    <input type="number" name="fee" step="0.001"><br>
+
+    <input type="submit">
   </form>
 
   <script type="text/javascript">
+    /****************************************************************/
+    /************ Account Type based on Selected Account ************/
+    /****************************************************************/
     const accounts = <%- JSON.stringify(accounts) %>
     document.getElementById('buy-account').addEventListener('change', function () {
       const selectedAccountName = this.value;
@@ -127,22 +155,28 @@
       typeDisplayElement.textContent = account.type;
     });
 
+    /***************************************************************/
+    /************ Company Name based on Selected Ticker ************/
+    /***************************************************************/
     async function fetchTickerInfo(ticker) {
       if (ticker == '') {
-        document.getElementById("company-display").textContent = 'N/A';
+        document.getElementById('company-display').textContent = 'N/A';
         return;
       }
       
-      const response = await fetch(`/api/stocks?ticker=${ticker}`);
+      const response = await fetch(`/fetch/company?ticker=${ticker}`);
       const data = await response.json();
       document.getElementById("company-display").textContent = data.company;
     }
 
-    document.querySelector('input[name="buyTicker"]').addEventListener("input", (event) => {
+    document.querySelector('input[name="buyTicker"]').addEventListener('input', (event) => {
       const ticker = event.target.value.toUpperCase();
       fetchTickerInfo(ticker);
     });
 
+    /**********************************************/
+    /************ Default Date for Buy ************/
+    /**********************************************/
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date();
       const localDate = today.getFullYear() +
@@ -152,6 +186,33 @@
         String(today.getDate()).padStart(2, '0');
 
       document.getElementById('buy-date').value = localDate;
+    });
+
+    /*********************************************************************/
+    /************ Lot Numbers & Data based on Selected Ticker ************/
+    /*********************************************************************/
+    async function fetchLots(ticker) {
+      const response = await fetch(`/fetch/lots?ticker=${ticker}`);
+      const data = await response.json();
+
+      const lots = data.lots;
+      const lotSelect = document.querySelector('select[name="lot"]');
+      const lotDisplay = document.getElementById('lot-display');
+
+      lotSelect.innerHTML = '';
+      lots.forEach(lot => {
+        const option = document.createElement('option');
+        option.value = lot._id;
+        option.textContent = `${lot._id}`;
+        lotSelect.appendChild(option);
+
+        lotDisplay.append(JSON.stringify(lot, null, 2));
+      });
+    }
+    
+    document.querySelector('select[name="sellTicker"]').addEventListener('change', function () {
+      const ticker = this.value;
+      fetchLots(ticker);
     });
   </script>
 </body>
