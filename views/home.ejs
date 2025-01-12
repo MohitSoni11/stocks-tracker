@@ -77,8 +77,6 @@
 
     <label for="account">Account:</label>
     <select name="account" id="buy-account">
-      <option value="blank"></option>
-
       <% accounts.forEach((account)=> { %>
         <option value="<%= account.name %>">
           <%= account.name %>
@@ -88,16 +86,14 @@
 
     <span>Account Type: <span id="type-display">None</span></span><br>
 
-    <datalist id="tickers-list">
+    <label for="buyTicker">Ticker:</label>
+    <select name="buyTicker">
       <% tickers.forEach((ticker)=> { %>
         <option value="<%= ticker.ticker %>">
           <%= ticker.ticker %>
         </option>
       <% }); %>
-    </datalist>
-
-    <label for="buyTicker">Ticker:</label>
-    <input type="text" list="tickers-list" name="buyTicker"><br>
+    </select><br>
 
     <span>Company: <span id="company-display">N/A</span></span><br>
     
@@ -170,14 +166,19 @@
     /************ Account Type based on Selected Account ************/
     /****************************************************************/
     const accounts = <%- JSON.stringify(accounts) %>
-    document.getElementById('buy-account').addEventListener('change', function () {
-      const selectedAccountName = this.value;
+
+    function updateAccountType() {
+      const selectedAccountName = document.getElementById('buy-account').value;
 
       const account = accounts.find(acc => acc.name === selectedAccountName);
       const typeDisplayElement = document.getElementById('type-display');
 
       typeDisplayElement.textContent = account.type;
-    });
+    }
+    
+    updateAccountType();
+    
+    document.getElementById('buy-account').addEventListener('change', updateAccountType);
 
     /***************************************************************/
     /************ Company Name based on Selected Ticker ************/
@@ -187,16 +188,20 @@
         document.getElementById('company-display').textContent = 'N/A';
         return;
       }
-      
+
       const response = await fetch(`/fetch/company?ticker=${ticker}`);
       const data = await response.json();
       document.getElementById("company-display").textContent = data.company;
     }
 
-    document.querySelector('input[name="buyTicker"]').addEventListener('input', (event) => {
-      const ticker = event.target.value.toUpperCase();
+    function updateCompanyName() {
+      const ticker = document.querySelector('select[name="buyTicker"]').value;
       fetchTickerInfo(ticker);
-    });
+    }
+
+    updateCompanyName();
+
+    document.querySelector('select[name="buyTicker"]').addEventListener('change', updateCompanyName);
 
     /**********************************************/
     /************ Default Date for Buy ************/
