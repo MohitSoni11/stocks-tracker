@@ -75,7 +75,6 @@ const TickerSchema = mongoose.Schema({
 const LotSchema = mongoose.Schema({
   buyDate: {
     type: Date,
-    default: Date.now,
     required: true
   },
   account: {
@@ -293,8 +292,12 @@ app.get('/fetch/lots', async (req, res) => {
 });
 
 app.post('/buy', async (req, res) => {
+  const now = new Date();
+  const providedDate = new Date(req.body.date);
+  providedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
   data = {
-    buyDate: req.body.date,
+    buyDate: providedDate,
     account: req.body.account,
     ticker: req.body.buyTicker,
     transactionType: req.body.transactionType,
@@ -321,22 +324,59 @@ app.post('/sell', async (req, res) => {
   };
 
   const currLot = await Lot.findOne({ _id: data.lot });
-  
-  if (currLot.buyQuantity < currLot.sellQuantity + data.quantity) {
+  soldQty = Number(data.quantity);
+
+  if (currLot.buyQuantity < currLot.sellQuantity + soldQty) {
     console.log('Error: Cannot sell more than bought.');
     res.redirect('/');
     return;
   }
 
-  currLot.sellQuantity += data.quantity;
-  currLot.sellReturn += data.quantity * data.price - data.fee;
+  currLot.sellQuantity += soldQty;
+  currLot.sellReturn += soldQty * Number(data.price) - Number(data.fee);
   await currLot.save();
 
   await Sell.insertMany([data]).then(() => {
-    console.log('Sold ' + data.quantity + ' stocks of ' + data.ticker + ' at price ' + data.buyPrice);
+    console.log('Sold ' + soldQty + ' stocks of ' + data.ticker + ' at price ' + data.price);
   }).catch((error) => {
     console.log('Error: ' + error);
   });
 
+  res.redirect('/');
+});
+
+app.post('/delete-account-types', async (req, res) => {
+  const result = await Type.deleteMany({});
+  console.log(`${result.deletedCount} account types deleted.`);
+  res.redirect('/');
+});
+
+app.post('/delete-accounts', async (req, res) => {
+  const result = await Account.deleteMany({});
+  console.log(`${result.deletedCount} accounts deleted.`);
+  res.redirect('/');
+});
+
+app.post('/delete-transaction-types', async (req, res) => {
+  const result = await TransactionType.deleteMany({});
+  console.log(`${result.deletedCount} transaction types deleted.`);
+  res.redirect('/');
+});
+
+app.post('/delete-tickers', async (req, res) => {
+  const result = await Ticker.deleteMany({});
+  console.log(`${result.deletedCount} tickers deleted.`);
+  res.redirect('/');
+});
+
+app.post('/delete-lots', async (req, res) => {
+  const result = await Lot.deleteMany({});
+  console.log(`${result.deletedCount} lots deleted.`);
+  res.redirect('/');
+});
+
+app.post('/delete-sells', async (req, res) => {
+  const result = await Sell.deleteMany({});
+  console.log(`${result.deletedCount} sells deleted.`);
   res.redirect('/');
 });
