@@ -291,6 +291,15 @@ app.get('/fetch/lots', async (req, res) => {
   })
 });
 
+app.get('/fetch/atype', async (req, res) => {
+  const account = req.query.account;
+  const results = await Account.find({ name: account });
+
+  res.json({
+    type: results[0].type
+  });
+});
+
 app.post('/buy', async (req, res) => {
   const now = new Date();
   const providedDate = new Date(req.body.date);
