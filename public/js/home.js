@@ -68,20 +68,78 @@ async function fetchLots(ticker) {
 
   const lots = data.lots;
   const lotSelect = document.querySelector('select[name="lot"]');
-  const lotDisplay = document.getElementById('lot-display');
+  const table = document.getElementById('lot-table');
+
+  const fetchCurrentPrice = await fetch(`/fetch/currentPrice?ticker=${ticker}`);
+  const currentPrice = await fetchCurrentPrice.json();
 
   lotSelect.innerHTML = '';
-  lots.forEach(lot => {
+  for (let i = table.rows.length - 1; i > 0; i--) {
+    table.deleteRow(i);
+  }
+
+  if (lots.length == 0) {
+    table.style.display = 'none';
+  } else {
+    table.style.display = 'table';
+  }
+
+  lots.forEach(async lot => {
     const option = document.createElement('option');
-    option.value = lot._id;
-    option.textContent = `${lot._id}`;
+    option.value = lot.lot;
+    option.textContent = `${lot.lot}`;
     lotSelect.appendChild(option);
 
-    lotDisplay.append(JSON.stringify(lot, null, 2));
+    const fetchAccountType = await fetch(`/fetch/atype?account=${lot.account}`);
+    const accountType = await fetchAccountType.json();
+
+    const fetchAvgSoldPrice = await fetch(`/fetch/avgSoldPrice?id=${lot.lot}`);
+    const avgSoldPrice = await fetchAvgSoldPrice.json();
+
+    const buyDate = new Date(lot.buyDate);
+    const formattedDate = buyDate.toLocaleString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+
+    console.log(formattedDate);
+
+    const rowData = [
+      lot.lot,
+      formattedDate,
+      accountType.type,
+      lot.account,
+      lot.buyQuantity,
+      lot.buyPrice,
+      lot.buyQuantity * lot.buyPrice,
+      lot.buyQuantity - lot.sellQuantity,
+      currentPrice.price,
+      (lot.buyQuantity - lot.sellQuantity) * currentPrice.price,
+      lot.sellQuantity,
+      avgSoldPrice.price,
+      lot.sellReturn,
+      lot.sellQuantity * avgSoldPrice.price - lot.buyQuantity * lot.buyPrice
+    ]
+
+    const row = table.insertRow();
+    rowData.forEach(item => {
+      const cell = row.insertCell();
+      cell.textContent = item;
+    });
   });
 }
 
-document.querySelector('select[name="sellTicker"]').addEventListener('change', function () {
-  const ticker = this.value;
+function updateLots() {
+  const ticker = document.querySelector('select[name="sellTicker"]').value;
   fetchLots(ticker);
-});
+}
+
+updateLots();
+
+document.querySelector('select[name="sellTicker"]').addEventListener('change', updateLots);

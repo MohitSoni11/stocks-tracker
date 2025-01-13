@@ -72,7 +72,18 @@ const TickerSchema = mongoose.Schema({
   }
 });
 
+const LotNumSchema = mongoose.Schema({
+  num: {
+    type: Number,
+    required: true
+  }
+});
+
 const LotSchema = mongoose.Schema({
+  lot: {
+    type: Number,
+    required: true
+  },
   buyDate: {
     type: Date,
     required: true
@@ -136,6 +147,7 @@ const Type = mongoose.model('type', TypeSchema);
 const Account = mongoose.model('account', AccountSchema);
 const TransactionType = mongoose.model('transactionType', TransactionTypeSchema);
 const Ticker = mongoose.model('ticker', TickerSchema);
+const LotNum = mongoose.model('lotNum', LotNumSchema);
 const Lot = mongoose.model('lot', LotSchema);
 const Sell = mongoose.model('sell', sellSchema);
 
@@ -174,6 +186,19 @@ function callPythonFunction(functionName, args) {
 /////////////////////////////
 
 app.get('/', async (req, res) => {
+  const lotNums = await LotNum.find({});
+  if (lotNums.length == 0) {
+    data = {
+      num: 0
+    };
+
+    await LotNum.insertMany([data]).then(() => {
+      console.log('Added Initial Lot Num');
+    }).catch((error) => {
+      console.log('ERROR: ' + error);
+    });
+  }
+
   const types = await Type.find({});
   const accounts = await Account.find({});
   const transactionTypes = await TransactionType.find({});
@@ -300,12 +325,41 @@ app.get('/fetch/atype', async (req, res) => {
   });
 });
 
+app.get('/fetch/currentPrice', async (req, res) => {
+  const ticker = req.query.ticker?.toUpperCase();
+  const result = await callPythonFunction('getCurrentPrice', { ticker: ticker });
+  res.json({
+    price: result['result']
+  });
+});
+
+app.get('/fetch/avgSoldPrice', async (req, res) => {
+  const id = req.query.id;
+  const results = await Sell.find({ lot: id });
+
+  const totals = results.reduce((acc, result) => {
+    acc.sellAmount += result.price * result.quantity;
+    acc.sellQty += result.quantity;
+    return acc;
+  }, { sellAmount: 0, sellQty: 0 });
+
+  const avgSoldPrice = totals.sellQty != 0 ? totals.sellAmount / totals.sellQty : 0;
+  res.json({
+    price: avgSoldPrice
+  });
+});
+
 app.post('/buy', async (req, res) => {
   const now = new Date();
   const providedDate = new Date(req.body.date);
   providedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
+  await LotNum.updateOne({}, { $inc: { num: 1 }});
+
+  const results = await LotNum.find({});
+
   data = {
+    lot: results[0].num,
     buyDate: providedDate,
     account: req.body.account,
     ticker: req.body.buyTicker,
@@ -332,7 +386,7 @@ app.post('/sell', async (req, res) => {
     fee: req.body.fee
   };
 
-  const currLot = await Lot.findOne({ _id: data.lot });
+  const currLot = await Lot.findOne({ lot: data.lot });
   soldQty = Number(data.quantity);
 
   if (currLot.buyQuantity < currLot.sellQuantity + soldQty) {

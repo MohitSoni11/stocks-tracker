@@ -19,6 +19,18 @@ def tickerToCompany(ticker):
     return dat.info['shortName']
   
   return 'N/A'
+
+def getCurrentPrice(ticker):
+  '''
+  Returns the current stock price of the company associated with ticker `ticker`.
+  Uses yfinance API.
+  '''
+  dat = yf.Ticker(ticker);
+  
+  if ('currentPrice' in dat.info):
+    return dat.info['currentPrice'];
+
+  return 'N/A'
   
   
 #########################################
@@ -26,7 +38,8 @@ def tickerToCompany(ticker):
 #########################################
 
 functions = {
-  'tickerToCompany': tickerToCompany
+  'tickerToCompany': tickerToCompany,
+  'getCurrentPrice': getCurrentPrice
 }
 
 ####################################

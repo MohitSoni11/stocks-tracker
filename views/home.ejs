@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="/css/home.css">
   <title>Home</title>
 </head>
 
@@ -134,8 +135,25 @@
     <label for="lot">Lot:</label>
     <select name="lot">
     </select><br>
-
-    <pre id="lot-display"></pre>
+    
+    <table id="lot-table">
+      <tr>
+        <th>ID</th>
+        <th>Buy Date</th>
+        <th>Account Type</th>
+        <th>Account</th>
+        <th>Bought Qty</th>
+        <th>Buy Price</th>
+        <th>Bought Amount</th>
+        <th>Remaining Qty</th>
+        <th>Current Price</th>
+        <th>Remaining Amount</th>
+        <th>Sold Qty</th>
+        <th>Avg Sold Price</th>
+        <th>Total Sold Amount</th>
+        <th>Gain/Loss</th>
+      </tr>
+    </table>
     
     <label for="quantity">Sell Quantity (Up to 4 decimal places):</label>
     <input type="number" name="quantity" step="0.0001"><br>
